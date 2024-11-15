@@ -1,0 +1,4 @@
+FrameRate song 1 - Target Control
+100
+m8 b4 s1 alt x1 1 0
+m9-15 everybeat s1 alt x1 1 0
