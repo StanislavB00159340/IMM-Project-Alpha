@@ -1,87 +1,129 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class movement : MonoBehaviour
 {
-    public float speed = 50f; // Max speed of the character movement
-    public float acceleration = 20f; // Rate of acceleration (faster)
-    public float deceleration = 30f; // Rate of deceleration (faster)
-    public float minInitialVelocity = 1f; // Starting velocity
-    public float peakVelocityMultiplier = 2f; // Multiplier for peak velocity
-    private Vector3 targetPosition; // The position to move towards
-    private float currentVelocity = 0f; // Current velocity during transition
-    private bool isTransitioning = false; // Flag to check if the character is transitioning
-    private bool canSwitchDirection = true; // Flag to check if direction switch is allowed
+    public float speed = 50f;
+    public float acceleration = 20f;
+    public float deceleration = 30f;
+    public float minInitialVelocity = 1f;
+    public float peakVelocityMultiplier = 2f;
+    public float dashDepleteRate = 20f; // Rate of dash bar depletion
+    public float dashSpeedMultiplier = 3f; // Multiplier for dash speed
 
-    private Animator animator; // Reference to the Animator component
+    private Vector3 targetPosition;
+    private float currentVelocity = 0f;
+    private bool isTransitioning = false;
+    private bool canSwitchDirection = true;
+    private bool isDashing = false; // Flag for dashing
+
+    public Slider dashBar; // Reference to the Dash Bar UI slider
+    public float dashFillAmount = 0.2f; // Amount to fill dash bar on contact
+
+    private Animator animator;
 
     void Start()
     {
-        targetPosition = transform.position; // Initialize starting position
-        animator = GetComponent<Animator>(); // Get the Animator component
+        targetPosition = transform.position;
+        animator = GetComponent<Animator>();
     }
 
     void Update()
     {
         // Check for input to change target position
-        if (Input.GetKeyDown(KeyCode.LeftArrow) && canSwitchDirection)
+        if (!isDashing)
         {
-            targetPosition = new Vector3(-70, 2, 5); // New target position to the left
-            if (!isTransitioning) StartCoroutine(Transition("TransitionLeft", "TransitionLeftLanding"));
-            else canSwitchDirection = false; // Disable direction switch until landing
+            if (Input.GetKeyDown(KeyCode.LeftArrow) && canSwitchDirection)
+            {
+                targetPosition = new Vector3(-70, 2, 5);
+                if (!isTransitioning) StartCoroutine(Transition("TransitionLeft", "TransitionLeftLanding"));
+                else canSwitchDirection = false;
+            }
+            else if (Input.GetKeyDown(KeyCode.RightArrow) && canSwitchDirection)
+            {
+                targetPosition = new Vector3(-70, 2, -5);
+                if (!isTransitioning) StartCoroutine(Transition("TransitionRight", "TransitionRightLanding"));
+                else canSwitchDirection = false;
+            }
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow) && canSwitchDirection)
+
+        // Dash logic: Check if X is pressed along with a movement key, and dash bar has value
+        if (Input.GetKeyDown(KeyCode.X) && dashBar.value == 1)
         {
-            targetPosition = new Vector3(-70, 2, -5); // New target position to the right
-            if (!isTransitioning) StartCoroutine(Transition("TransitionRight", "TransitionRightLanding"));
-            else canSwitchDirection = false; // Disable direction switch until landing
-        }
-        else if (!isTransitioning)
-        {
-            //animator.SetTrigger("Idle"); // Set idle animation when not transitioning
+            if (Input.GetKey(KeyCode.LeftArrow))
+            {
+                targetPosition = new Vector3(-70, 2, 5);
+                StartCoroutine(DashToTarget());
+            }
+            else if (Input.GetKey(KeyCode.RightArrow))
+            {
+                targetPosition = new Vector3(-70, 2, -5);
+                StartCoroutine(DashToTarget());
+            }
         }
     }
 
     private IEnumerator Transition(string transitionAnim, string landingAnim)
     {
-        isTransitioning = true; // Set transitioning flag
-        currentVelocity = minInitialVelocity; // Start with a low initial velocity
+        isTransitioning = true;
+        currentVelocity = minInitialVelocity;
+        animator.SetTrigger(transitionAnim);
 
-        animator.SetTrigger(transitionAnim); // Play transition animation
-
-        // Continue transitioning until the character reaches the target position
         while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
         {
-            // Accelerate towards the target until peak velocity
             if (currentVelocity < speed * peakVelocityMultiplier)
             {
-                currentVelocity += acceleration * Time.deltaTime; // Accelerate
+                currentVelocity += acceleration * Time.deltaTime;
             }
 
-            // Move the character towards the target position with the current velocity
             transform.position = Vector3.MoveTowards(transform.position, targetPosition, currentVelocity * Time.deltaTime);
 
-            // If close to the target, start deceleration
             if (Vector3.Distance(transform.position, targetPosition) < 1f)
             {
-                currentVelocity -= deceleration * Time.deltaTime; // Decelerate
-                if (currentVelocity < 0f) currentVelocity = 0f; // Prevent negative velocity
+                currentVelocity -= deceleration * Time.deltaTime;
+                if (currentVelocity < 0f) currentVelocity = 0f;
             }
 
-            yield return null; // Wait for the next frame
+            yield return null;
         }
 
-        // Ensure the character snaps to the exact target position
         transform.position = targetPosition;
-        currentVelocity = 0f; // Reset velocity
-
-        // Play landing animation
+        currentVelocity = 0f;
         animator.SetTrigger(landingAnim);
 
-        yield return new WaitForSeconds(0.5f); // Wait for landing animation to finish (adjust time as needed)
+        yield return new WaitForSeconds(0.5f);
 
-        isTransitioning = false; // Reset transitioning flag
-        canSwitchDirection = true; // Allow direction switch again after landing
+        isTransitioning = false;
+        canSwitchDirection = true;
+    }
+
+    private IEnumerator DashToTarget()
+    {
+        isDashing = true;
+        float dashSpeed = speed * dashSpeedMultiplier;
+
+        while (Vector3.Distance(transform.position, targetPosition) > 0.1f && dashBar.value > 0)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, dashSpeed * Time.deltaTime);
+
+            dashBar.value -= dashDepleteRate * Time.deltaTime; // Deplete dash bar
+
+            yield return null;
+        }
+
+        transform.position = targetPosition;
+        isDashing = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("pointEnable"))
+        {
+            dashBar.value += dashFillAmount; // Fill dash bar
+            Debug.Log("sss");
+            
+        }
     }
 }
