@@ -10,17 +10,17 @@ public class movement : MonoBehaviour
     public float deceleration = 30f;
     public float minInitialVelocity = 1f;
     public float peakVelocityMultiplier = 2f;
-    public float dashDepleteRate = 20f; // Rate of dash bar depletion
-    public float dashSpeedMultiplier = 3f; // Multiplier for dash speed
+    public float dashDepleteRate = 20f; 
+    public float dashSpeedMultiplier = 3f; 
 
     private Vector3 targetPosition;
     private float currentVelocity = 0f;
     private bool isTransitioning = false;
     private bool canSwitchDirection = true;
-    private bool isDashing = false; // Flag for dashing
+    private bool isDashing = false; 
 
-    public Slider dashBar; // Reference to the Dash Bar UI slider
-    public float dashFillAmount = 0.2f; // Amount to fill dash bar on contact
+    public Slider dashBar; 
+    public float dashFillAmount = 0.2f; 
 
     private Animator animator;
 
@@ -32,7 +32,7 @@ public class movement : MonoBehaviour
 
     void Update()
     {
-        // Check for input to change target position
+        
         if (!isDashing)
         {
             if (Input.GetKeyDown(KeyCode.LeftArrow) && canSwitchDirection)
@@ -49,7 +49,7 @@ public class movement : MonoBehaviour
             }
         }
 
-        // Dash logic: Check if X is pressed along with a movement key, and dash bar has value
+        
         if (Input.GetKeyDown(KeyCode.X) && dashBar.value == 1)
         {
             if (Input.GetKey(KeyCode.LeftArrow))
