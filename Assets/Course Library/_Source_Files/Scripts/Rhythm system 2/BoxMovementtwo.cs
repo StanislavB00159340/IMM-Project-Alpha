@@ -32,8 +32,8 @@ public class BoxMovementtwo : MonoBehaviour
         }
         if (other.CompareTag("Player"))
         {
-           
-           
+
+
             Destroy(gameObject); // Destroy the box when it hits the player
         }
     }
